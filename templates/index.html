@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Map with Queries</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input, select, button {
+            margin-bottom: 10px;
+            padding: 5px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        iframe {
+            border: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive Map with Queries</h1>
+    <form id="queryForm" method="POST" action="/generate_map">
+        <label for="query">בחר שאילתא:</label>
+        <select id="query" name="query" required>
+            <option value="influential_groups">קבוצות בעלות השפעה</option>
+            <option value="active_groups">קבוצות פעילות</option>
+            <!-- אפשר להוסיף שאילתות נוספות -->
+        </select><br>
+
+        <label for="region">אזור:</label>
+        <input type="text" id="region" name="region" placeholder="הזן אזור"><br>
+
+        <label for="country">מדינה:</label>
+        <input type="text" id="country" name="country" placeholder="הזן מדינה"><br>
+
+        <button type="submit">שליחה</button>
+    </form>
+
+    <iframe id="mapFrame" src="" width="100%" height="600px"></iframe>
+</body>
+</html>

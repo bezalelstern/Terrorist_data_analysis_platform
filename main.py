@@ -14,15 +14,9 @@ def create_graph(tx, group, attack, region, country, location, target, date, kil
     longitude = 0 if math.isnan(longitude) else longitude
     latitude = 0 if math.isnan(latitude) else latitude
     query = """
-    // יצירת קבוצת הטרור
     MERGE (g:Group {name: $group})
-
-    // יצירת האזור והמדינה
     MERGE (r:Region {name: $region})
     MERGE (c:Country {name: $country})
-   
-
-    // יצירת המיקום (עיר)
     MERGE (l:Location {name: $location})
     
     // קשרים

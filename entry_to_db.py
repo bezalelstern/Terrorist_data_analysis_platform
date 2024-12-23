@@ -4,27 +4,50 @@ from flask import current_app as app
 import pandas as pd
 
 
-def create_graph(tx, group, attack, region, country, location, target, date, killed, injured):
-    killed = 0 if math.isnan(killed) else killed
-    injured = 0 if math.isnan(injured) else injured
-    query = """
-    // יצירת קבוצת הטרור
-    MERGE (g:Group {name: $group})
+def create_graph(tx, group, attack, region, country, location, target, date, killed, injured, latitude, longitude):
 
-    // יצירת האזור והמדינה
+    killed = 0 if (pd.isna(killed) or math.isnan(killed)) else killed
+    injured = 0 if (pd.isna(injured) or math.isnan(injured)) else injured
+    longitude = 0 if (pd.isna(longitude) or math.isnan(longitude)) else longitude
+    latitude = 0 if (pd.isna(latitude) or math.isnan(latitude)) else latitude
+
+    if pd.isna(group):
+        group = "Unknown"
+    if pd.isna(attack):
+        attack = "Unknown"
+    if pd.isna(region):
+        region = "Unknown"
+    if pd.isna(country):
+        country = "Unknown"
+    if pd.isna(location):
+        location = "Unknown"
+    if pd.isna(target):
+        target = "Unknown"
+
+    if isinstance(date, datetime):
+        date_str = date.isoformat()
+    else:
+        date_str = "unknown"
+
+    query = """
+    MERGE (g:Group {name: $group})
     MERGE (r:Region {name: $region})
     MERGE (c:Country {name: $country})
-    MERGE (c)-[:PART_OF]->(r)
-
-    // יצירת המיקום (עיר)
     MERGE (l:Location {name: $location})
-
-    // קשרים
+    MERGE (c)-[:PART_OF]->(r)
     MERGE (l)-[:IN_COUNTRY]->(c)
-    MERGE (g)-[:ATTACKED {date: $date, target: $target, attack: $attack, dead: $dead, injured: $injured}]->(l)
+    MERGE (g)-[:ATTACKED {
+        date: $date, 
+        target: $target, 
+        attack: $attack, 
+        dead: $dead, 
+        injured: $injured, 
+        latitude: $latitude, 
+        longitude: $longitude
+    }]->(l)
     """
     tx.run(query, group=group, attack=attack, region=region, country=country, location=location, target=target,
-           date=date, dead=killed, injured=injured)
+           date=date_str, dead=killed, injured=injured, latitude=latitude, longitude=longitude)
 
 
 
@@ -32,36 +55,49 @@ def create_graph(tx, group, attack, region, country, location, target, date, kil
 
 def read_and_save_neo4j():
     with app.app_context():
-        file_path = "data/globalterrorismdb_0718dist-1000 rows.csv"
-        data = pd.read_csv(file_path, encoding="latin1")
+        file_path = "data/globalterrorismdb_0718dist.csv"
+        try:
+            data = pd.read_csv(file_path, encoding="latin1")
+        except Exception as e:
+            print(f"Error reading the file: {e}")
+            exit()
 
         columns_of_interest = [
-            "gname", "attacktype1_txt", "region_txt", "country_txt", "city", "targtype1_txt", "iyear", "imonth", "iday",
-            "nkill", "nwound"
+            "gname", "attacktype1_txt", "region_txt", "country_txt", "city",
+            "targtype1_txt", "iyear", "imonth", "iday", "nkill", "nwound", "latitude", "longitude"
         ]
         data = data[columns_of_interest]
-        with app.driver.session() as session:
-            for _, row in data.iterrows():
-                row, date =chek_row(row)
-                pass
-                session.execute_write(
-                    create_graph,
-                    row["gname"],
-                    row["attacktype1_txt"],
-                    row["region_txt"],
-                    row["country_txt"],
-                    row["city"],
-                    row["targtype1_txt"],
-                    date,
-                    row["nkill"],
-                    row["nwound"]
-                )
-        print("הנתונים הוזנו בהצלחה לגרף.")
 
-def chek_row(row):
-    if pd.isna(row["iyear"]) or pd.isna(row["imonth"]) or pd.isna(row["iday"]) | row["imonth"] not in range(1,13) or \
-            row["iday"] < 1:
-        date = "unknown"
-    else:
-        date = datetime(row["iyear"], row["imonth"], row["iday"])
-    return row,date
+        try:
+            with app.driver.session() as session:
+                for _, row in data.iterrows():
+                    if (pd.isna(row["iyear"]) or pd.isna(row["imonth"]) or pd.isna(row["iday"])
+                            or row["imonth"] not in range(1, 13) or row["iday"] < 1):
+                        date = "unknown"
+                    else:
+                        try:
+                            date = datetime(int(row["iyear"]), int(row["imonth"]), int(row["iday"]))
+                        except ValueError:
+                            date = "unknown"
+
+                    # Execute Neo4j operation
+                    session.execute_write(
+                        create_graph,
+                        row["gname"],
+                        row["attacktype1_txt"],
+                        row["region_txt"],
+                        row["country_txt"],
+                        row["city"],
+                        row["targtype1_txt"],
+                        date,
+                        row["nkill"],
+                        row["nwound"],
+                        row["latitude"],
+                        row["longitude"]
+                    )
+            print("Data loaded successfully into Neo4j.")
+        except Exception as e:
+            print(f"An error occurred while loading data into Neo4j: {e}")
+        finally:
+            session.close()
+

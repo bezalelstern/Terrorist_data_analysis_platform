@@ -1,49 +1,59 @@
 import requests
 import json
-from pymongo import MongoClient
 
-# קביעת מפתח API וקישור
-API_KEY = 'your_api_key_here'
-API_URL = 'https://newsapi.ai/documentation?tab=searchArticles'
 
-# שליפת מידע מה-API
 def fetch_news():
+    API_URL = 'http://eventregistry.org/api/v1/article/getArticles'
+
     params = {
         "action": "getArticles",
         "keyword": "terror attack",
-        "articlesCount": 10,  # הגבלת מספר התוצאות
+        "ignoreSourceGroupUri": "paywall/paywalled_sources",
+        "articlesPage": 1,
+        "articlesCount": 100,
         "articlesSortBy": "socialScore",
-        "apiKey": API_KEY
+        "articlesSortByAsc": "false",
+        "dataType": ["news", "pr"],
+        "forceMaxDataTimeWindow": 31,
+        "resultType": "articles",
+        "apiKey": "be7d1e47-d51a-46d5-8440-4b6b75304261"
     }
-    response = requests.post(API_URL, json=params)
-    if response.status_code == 200:
-        print(response.json().g.get('articles', []))
-        return response.json().get('articles', [])
-    else:
-        print("Error fetching data:", response.status_code)
-        return []
 
-# חיבור ל-MongoDB
-# def connect_to_db():
-#     client = MongoClient('mongodb://localhost:27017/')
-#     db = client['terror_analysis']
-#     return db['real_time_news']
-#
-# # הוספת נתונים לבסיס הנתונים
-# def store_in_db(articles, collection):
-#     for article in articles:
-#         collection.update_one(
-#             {"uri": article["uri"]},  # זיהוי ייחודי למניעת כפילויות
-#             {"$set": article},
-#             upsert=True
-#         )
+    try:
+        response = requests.get(API_URL, params=params)
+        response.raise_for_status()
 
-# הרצת התהליך
+        data = response.json()
+
+        # Let's first print the structure of the response to understand it
+        print("Response structure:")
+        print(json.dumps(data, indent=2))  # Print first 500 chars of formatted JSON
+
+        # Now handle the data more carefully
+        if isinstance(data, dict) and 'articles' in data:
+            articles = data['articles']
+            if isinstance(articles, list):
+                for article in articles:
+                    if isinstance(article, dict):
+                        print(f"Title: {article.get('title', 'No title')}")
+                        print(f"Source: {article.get('source', 'No source')}")
+                        print(f"Date: {article.get('date', 'No date')}")
+                    else:
+                        print(f"Article data: {article}")
+                    print("-" * 50)
+        else:
+            print("Unexpected response format:")
+            print(json.dumps(data, indent=2))
+
+        return data
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching news: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON response: {e}")
+        return None
+
+
 if __name__ == "__main__":
-    news_articles = fetch_news()
-    if news_articles:
-        collection = connect_to_db()
-        store_in_db(news_articles, collection)
-        print("Data successfully fetched and stored.")
-    else:
-        print("No articles fetched.")
+    fetch_news()
