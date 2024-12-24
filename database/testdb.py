@@ -28,7 +28,7 @@ def create_graph(tx, group, attack, region, country, location, target, date, kil
            date=date, dead=killed, injured=injured, latitude = latitude, longitude = longitude )
 
 
-file_path = "data/globalterrorismdb_0718dist-1000 rows.csv"
+file_path = "../data/globalterrorismdb_0718dist-1000 rows.csv"
 data = pd.read_csv(file_path, encoding="latin1")
 
 # בחירת עמודות רלוונטיות

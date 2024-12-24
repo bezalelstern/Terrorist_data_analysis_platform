@@ -149,5 +149,4 @@ class AnalyseRepository:
         print("get_influential_groups")
         with self.driver.session() as session:
             result = session.run(query, params)
-            print([dict(record) for record in result])
             return [dict(record) for record in result]

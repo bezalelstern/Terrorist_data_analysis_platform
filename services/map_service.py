@@ -32,19 +32,20 @@ def plot_avg_victims_on_map(data):
         print(region)
         avg_victims = record["avg_victims_per_event"]
 
-        result = geocoder.geocode(region)
+        result =  regions_coordinates.get(region)
         if result and len(result) > 0:
-            lat = result[0]['geometry']['lat']
-            lng = result[0]['geometry']['lng']
+            lat = result["latitude"]
+            lng = result["longitude"]
 
             folium.Marker(
                 location=[lat, lng],
                 popup=f"Region: {region}<br>Avg Victims: {avg_victims}",
                 icon=folium.Icon(color="red", icon="info-sign")
             ).add_to(m)
+    map_path = os.path.join(current_app.root_path, "static", "avg_victims_map.html")
+    m.save(map_path)
+    return "/static/avg_victims_map.html"
 
-    m.save("avg_victims_map.html")
-    return jsonify({"message": "Map created", "file": "avg_victims_map.html"})
 
 def plot_active_groups_on_map(region, groups):
 
@@ -97,31 +98,45 @@ def plot_active_groups_on_map(region, groups):
 
 
 def plot_influential_groups_on_map(region, groups):
-    print("start")
+
     try:
         if region:
             landmarks = regions_coordinates.get(region)
+            print(f"Landmarks found: {landmarks}")
 
             if landmarks:
-                map_center = [landmarks["latitude"],landmarks["longitude"]]
+                map_center = [landmarks["latitude"], landmarks["longitude"]]
+                print(f"Map center will be at: {map_center}")
                 zoom_start = 5
 
                 m = folium.Map(location=map_center, zoom_start=zoom_start)
 
+                print("Building popup content...")
                 popup_content = "<b>Top Groups:</b><ul>"
                 for group in groups:
+                    print(f"Processing group: {group}")
                     popup_content += f"<li>{group['group_name']}: {group['total_links']} links</li>"
                 popup_content += "</ul>"
 
-                folium.Marker(
-                        location=[landmarks["latitude"],landmarks["longitude"]],
-                        popup=popup_content,
-                        icon=folium.Icon(color="blue", icon="info-sign")
-                ).add_to(m)
+                print(f"Final popup content: {popup_content}")
 
-                print("plot_influential_groups_on_map")
+                marker = folium.Marker(
+                    location=[landmarks["latitude"], landmarks["longitude"]],
+                    popup=popup_content,
+                    icon=folium.Icon(color="blue", icon="info-sign")
+                )
+                marker.add_to(m)
+
+                print("Saving map...")
                 map_path = os.path.join(current_app.root_path, "static", "influential_groups_map.html")
+                print(f"Map will be saved to: {map_path}")
                 m.save(map_path)
+                print("Map saved successfully")
                 return "/static/influential_groups_map.html"
+        else:
+            print("No region provided")
     except Exception as e:
-        print(e)
+        print(f"Error occurred: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")

@@ -21,6 +21,12 @@ def generate_map():
             map_path = get_influential_groups(region, country)
         elif query == "active_groups":
             map_path = get_active_groups_by_region(region)
+        elif query == "avg_victims":
+            if region == "" or region == None:
+                region = 5
+            else:
+                region = int(region)
+            map_path = find_avg_victims_per_region(region)
         else:
             return "Invalid query", 400
 
@@ -45,16 +51,14 @@ def find_lethal_attack_type():
 
 
 @bp_analyse.route('/find_avg_victims', methods=['GET'])
-def find_avg_victims_per_region():
-    top_regions = request.args.get('top_regions', 5)
-
+def find_avg_victims_per_region(region):
     try:
         repo = AnalyseRepository(current_app.driver)
-        data = repo.find_avg_victims_per_region( top_regions)
-
-        return plot_avg_victims_on_map(data), 200
+        data = repo.find_avg_victims_per_region(region)
+        map_html = plot_avg_victims_on_map(data)
+        return map_html
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise e
 
 
 
@@ -90,12 +94,10 @@ def get_active_groups_by_region(region):
 
 # @bp_analyse.route('/get_influential_groups', methods=['GET'])
 def get_influential_groups(region,country):
-    print("get_influential_groups", region, country)
     if region == "":
         region = None
     try:
         repo = AnalyseRepository(current_app.driver)
-        print("jhbvewik")
         groups = repo.get_influential_groups(region)
         print(groups)
 
