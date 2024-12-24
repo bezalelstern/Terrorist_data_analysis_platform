@@ -1,6 +1,6 @@
 from flask import Flask, render_template
 from bluprints.analyse import bp_analyse
-from entry_to_db import read_and_save_neo4j
+from entry_to_db2 import read_and_save_neo4j
 from init_db import init_neo4j
 
 app = Flask(__name__)

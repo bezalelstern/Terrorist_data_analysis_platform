@@ -74,7 +74,7 @@ class AnalyseRepository:
             return [dict(record) for record in results]
 
     def get_active_groups_by_region(self, region):
-        if region.lower() == "all":
+        if region == "all":
             query = """
             MATCH (r:Region)<-[:PART_OF]-(c:Country)<-[:IN_COUNTRY]-(l:Location)<-[:ATTACKED]-(g:Group)
             WITH r.name AS region_name, g.name AS group_name, COUNT(*) AS event_count
@@ -84,32 +84,70 @@ class AnalyseRepository:
             RETURN region_name, top_groups
             """
             params = {}
+
+            with self.driver.session() as session:
+                results = session.run(query, params)
+                data = []
+                for record in results:
+                    data.append({
+                        "region_name": record["region_name"],
+                        "top_groups": [
+                            {
+                                "group_name": tg["group_name"],
+                                "event_count": tg["event_count"]
+                            }
+                            for tg in record["top_groups"]
+                        ]
+                    })
+                return data
+
         else:
             query = """
             MATCH (g:Group)-[:ATTACKED]->(l:Location)-[:IN_COUNTRY]->(c:Country)-[:PART_OF]->(r:Region)
             WHERE r.name = $region
             WITH g.name AS group_name, COUNT(*) AS event_count, collect(l.name) AS locations
-            RETURN group_name, event_count, locations
             ORDER BY event_count DESC
+            RETURN g.name as group_name, event_count, locations, r.name as region_name
             """
             params = {'region': region}
 
-        with self.driver.session() as session:
-            result = session.run(query, params)
-            return [dict(record) for record in result]
+            with self.driver.session() as session:
+                results = session.run(query, params)
+                # עבור אזור בודד, נחזיר מילון אחד עם רשימת קבוצות.
+                top_groups = []
+                region_name = None
 
-    def get_influential_groups(self, region, country= None):
+                for record in results:
+                    region_name = record["region_name"]
+                    top_groups.append({
+                        "group_name": record["group_name"],
+                        "event_count": record["event_count"],
+                        "locations": record["locations"],
+                    })
+
+                top_groups = sorted(top_groups, key=lambda x: x["event_count"], reverse=True)
+
+                # בניית המבנה הסופי
+                data = []
+                if region_name:
+                    data.append({
+                        "region_name": region_name,
+                        "top_groups": top_groups
+                    })
+                return data
+
+    def get_influential_groups(self, region):
         query = """
-        MATCH (g:Group)-[:ATTACKED]->(l:Location)-[:IN_COUNTRY]->(c:Country)-[:PART_OF]->(r:Region)
-        OPTIONAL MATCH (g)-[:TARGETED]->(t:Target)
-        WHERE ($region IS NULL OR r.name = $region)
-        WITH g.name AS group_name, COUNT(DISTINCT r) AS region_links, COUNT(DISTINCT t) AS target_links
-        RETURN group_name, region_links + target_links AS total_links
-        ORDER BY total_links DESC
-        LIMIT 5
+                MATCH (g:Group)-[a:ATTACKED]->(l:Location)-[:IN_COUNTRY]->(c:Country)-[:PART_OF]->(r:Region)
+                WHERE ($region IS NULL OR r.name = $region)
+                WITH g.name AS group_name, COUNT(DISTINCT r) AS region_links, COUNT(DISTINCT a.target) AS target_links
+                RETURN group_name, region_links + target_links AS total_links
+                ORDER BY total_links DESC
+                LIMIT 10
         """
         params = {'region': region}
-
+        print("get_influential_groups")
         with self.driver.session() as session:
             result = session.run(query, params)
+            print([dict(record) for record in result])
             return [dict(record) for record in result]
