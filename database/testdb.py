@@ -37,7 +37,6 @@ columns_of_interest = [
 ]
 data = data[columns_of_interest]
 
-# הכנסת נתונים לגרף
 with driver.session() as session:
     for _, row in data.iterrows():
         if pd.isna(row["iyear"]) or pd.isna(row["imonth"]) or pd.isna(row["iday"]) | row["imonth"] not in range(1,13) or row["iday"] <1:
@@ -63,7 +62,6 @@ with driver.session() as session:
 
 
 
-# סגירת החיבור
 driver.close()
 print("הנתונים הוזנו בהצלחה לגרף.")
 

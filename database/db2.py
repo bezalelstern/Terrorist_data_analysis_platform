@@ -9,13 +9,11 @@ driver = GraphDatabase.driver(uri, auth=("neo4j", "password"))
 
 def create_graph(tx, group, attack, region, country, location, target, date, killed, injured, latitude, longitude):
 
-    # Handle NaN values for numeric properties
     killed = 0 if (pd.isna(killed) or math.isnan(killed)) else killed
     injured = 0 if (pd.isna(injured) or math.isnan(injured)) else injured
     longitude = 0 if (pd.isna(longitude) or math.isnan(longitude)) else longitude
     latitude = 0 if (pd.isna(latitude) or math.isnan(latitude)) else latitude
 
-    # Handle NaN or missing string fields
     if pd.isna(group):
         group = "Unknown"
     if pd.isna(attack):
@@ -29,7 +27,6 @@ def create_graph(tx, group, attack, region, country, location, target, date, kil
     if pd.isna(target):
         target = "Unknown"
 
-    # Correctly format date as string for Neo4j
     if isinstance(date, datetime):
         date_str = date.isoformat()
     else:
@@ -66,18 +63,15 @@ except Exception as e:
     print(f"Error reading the file: {e}")
     exit()
 
-# Select relevant columns
 columns_of_interest = [
     "gname", "attacktype1_txt", "region_txt", "country_txt", "city",
     "targtype1_txt", "iyear", "imonth", "iday", "nkill", "nwound", "latitude", "longitude"
 ]
 data = data[columns_of_interest].copy()
 
-# Insert data into Neo4j
 try:
     with driver.session() as session:
         for _, row in data.iterrows():
-            # Handle date parsing
             if (pd.isna(row["iyear"]) or pd.isna(row["imonth"]) or pd.isna(row["iday"])
                     or row["imonth"] not in range(1, 13) or row["iday"] < 1):
                 date = "unknown"
@@ -87,7 +81,6 @@ try:
                 except ValueError:
                     date = "unknown"
 
-            # Execute Neo4j operation
             session.execute_write(
                 create_graph,
                 row["gname"],

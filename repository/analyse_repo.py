@@ -113,7 +113,6 @@ class AnalyseRepository:
 
             with self.driver.session() as session:
                 results = session.run(query, params)
-                # עבור אזור בודד, נחזיר מילון אחד עם רשימת קבוצות.
                 top_groups = []
                 region_name = None
 
@@ -127,7 +126,6 @@ class AnalyseRepository:
 
                 top_groups = sorted(top_groups, key=lambda x: x["event_count"], reverse=True)
 
-                # בניית המבנה הסופי
                 data = []
                 if region_name:
                     data.append({

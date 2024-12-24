@@ -25,11 +25,10 @@ def fetch_news():
 
         data = response.json()
 
-        # Let's first print the structure of the response to understand it
         print("Response structure:")
-        print(json.dumps(data, indent=2))  # Print first 500 chars of formatted JSON
+        print(json.dumps(data, indent=2))
 
-        # Now handle the data more carefully
+
         if isinstance(data, dict) and 'articles' in data:
             articles = data['articles']
             if isinstance(articles, list):

@@ -74,7 +74,6 @@ def plot_active_groups_on_map(region, groups):
                 region_lat = region_result["latitude"]
                 region_lng = region_result["longitude"]
 
-                # בניית תוכן לתיבת Popup
                 popup_content = f"<b>Region:</b> {region_name}<br><b>Top Groups:</b><ul>"
                 for top_group in top_groups:
                     popup_content += (
@@ -127,11 +126,8 @@ def plot_influential_groups_on_map(region, groups):
                 )
                 marker.add_to(m)
 
-                print("Saving map...")
                 map_path = os.path.join(current_app.root_path, "static", "influential_groups_map.html")
-                print(f"Map will be saved to: {map_path}")
                 m.save(map_path)
-                print("Map saved successfully")
                 return "/static/influential_groups_map.html"
         else:
             print("No region provided")
